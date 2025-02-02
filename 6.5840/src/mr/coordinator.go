@@ -268,9 +268,20 @@ func (c *Coordinator) Done() bool {
 // nReduce is the number of reduce tasks to use.
 func MakeCoordinator(files []string, nReduce int) *Coordinator {
 	c := Coordinator{}
+	c.files = files
+	c.numReduce = nReduce
 
-	// Your code here.
+	for i, file := range files {
+		taskinfo := TaskInfo{}
+		taskinfo.filesNames = []string{file}
+		taskinfo.status = IDLE
+		c.mapAssigns[i] = &taskinfo
+	}
 
+	c.reduAssigns = make(map[int]*TaskInfo)
 	c.server()
+	c.done = false
+	go c.checkInProgressTasks()
+
 	return &c
 }
