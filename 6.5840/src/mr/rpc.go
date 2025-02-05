@@ -26,7 +26,7 @@ const (
 
 // task request struct
 type TaskRequest struct {
-	WorkerID int
+	WorkerID string
 }
 
 // task assignment struct
@@ -39,7 +39,7 @@ type TaskAssign struct {
 
 // task done notification struct
 type TaskDoneNotif struct {
-	WorkerID   int
+	WorkerID   string
 	FilesNames []string
 	TaskID     int
 	Type       string

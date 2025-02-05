@@ -1,10 +1,13 @@
 package mr
 
 import (
+	"errors"
 	"fmt"
 	"hash/fnv"
 	"log"
 	"net/rpc"
+
+	"github.com/google/uuid"
 )
 
 // Map functions return a slice of KeyValue.
@@ -21,42 +24,50 @@ func ihash(key string) int {
 	return int(h.Sum32() & 0x7fffffff)
 }
 
+var workerID string
+
 // main/mrworker.go calls this function.
 func Worker(mapf func(string, string) []KeyValue,
 	reducef func(string, []string) string,
 ) {
-	// Your worker implementation here.
-
-	// uncomment to send the Example RPC to the coordinator.
-	// CallExample()
+	workerID = uuid.New().String()
 }
 
-// example function to show how to make an RPC call to the coordinator.
-//
-// the RPC argument and reply types are defined in rpc.go.
-func CallExample() {
-	// declare an argument structure.
-	args := ExampleArgs{}
+// run mapper func
 
-	// fill in the argument(s).
-	args.X = 99
+// run reducer func
 
-	// declare a reply structure.
-	reply := ExampleReply{}
-
-	// send the RPC request, wait for the reply.
-	// the "Coordinator.Example" tells the
-	// receiving server that we'd like to call
-	// the Example() method of struct Coordinator.
-	ok := call("Coordinator.Example", &args, &reply)
-	if ok {
-		// reply.Y should be 100.
-		fmt.Printf("reply.Y %v\n", reply.Y)
+// get task func
+func getTask() (*TaskAssign, error) {
+	taskAssign := TaskAssign{}
+	taskRequest := TaskRequest{}
+	taskRequest.WorkerID = workerID
+	if call("coordinator.AssignTask", &taskRequest, &taskAssign) {
+		return &taskAssign, nil
 	} else {
-		fmt.Printf("call failed!\n")
+		return nil, errors.New("can not call the coordinator")
 	}
 }
 
+// task done func
+func taskDone(filenames []string, taskId int, taskType string) {
+	taskDoneNotif := TaskDoneNotif{}
+	taskDoneNotif.FilesNames = filenames
+	taskDoneNotif.WorkerID = workerID
+	taskDoneNotif.TaskID = taskId
+	taskDoneNotif.Type = taskType
+	taskDone := TaskDone{}
+	if call("coordinator.TaskDone", &taskDoneNotif, &taskDone) {
+		if !taskDone.Done {
+			log.Fatal("coordinator didn't response with Done")
+		} else {
+			log.Fatal("couldn't notifiy coordinator ")
+		}
+	}
+}
+
+// read file func
+// task assigned func
 // send an RPC request to the coordinator, wait for the response.
 // usually returns true.
 // returns false if something goes wrong.
